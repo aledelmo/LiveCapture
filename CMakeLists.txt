@@ -119,3 +119,28 @@ TARGET_LINK_LIBRARIES(ZMQ_OpenCV
         ${PLATFORM_LIBRARIES}
         ${OpenCV_LIBS}
         )
+
+################## ZMQ + OpenCV + DeckLink
+
+SET(APP_HEADERS
+        src/Capture/Capture.h
+        src/Capture/Config.cpp
+        src/Capture/Config.h
+        )
+
+ADD_EXECUTABLE(Capture
+        src/Capture/Capture.cpp
+        ${APP_HEADERS}
+        ${PLATFORM_SOURCES}
+        )
+
+TARGET_INCLUDE_DIRECTORIES(Capture PRIVATE
+        ${DECKLINK_SDK_INCLUDE_DIR}
+        ${PLATFORM_INCLUDE_DIR}
+        )
+
+TARGET_LINK_LIBRARIES(Capture
+        cppzmq
+        ${PLATFORM_LIBRARIES}
+        ${OpenCV_LIBS}
+        )
