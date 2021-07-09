@@ -10,6 +10,7 @@
 #include "zmq.hpp"
 #include <opencv2/opencv.hpp>
 
+
 static pthread_mutex_t	g_sleepMutex;
 static pthread_cond_t	g_sleepCond;
 static bool				g_do_exit = false;
@@ -164,9 +165,8 @@ static void sigfunc(int signum)
 
 int main(int argc, char *argv[])
 {
-    zmq_bind(publisher, "tcp://*:5005");
 
-	HRESULT							result;
+    HRESULT							result;
 	int								exitStatus = 1;
 
 	IDeckLink*						deckLink = nullptr;
@@ -194,6 +194,13 @@ int main(int argc, char *argv[])
 		g_config.DisplayUsage(exitStatus);
 		goto bail;
 	}
+    //connect/bind publisher to port g_config.m_port
+
+//	memset(adress, "tcp://*:" + std::to_string(g_config.m_port), 12 );
+
+    zmq_bind(publisher,g_config.SetAdressZMQ());
+
+    std::cout<<"publisher binded to port : "<<g_config.m_port<<std::endl;
 
 	// Get the DeckLink device
 	deckLink = g_config.GetSelectedDeckLink();
@@ -284,6 +291,9 @@ int main(int argc, char *argv[])
 	// Configure the capture callback
 	delegate = new DeckLinkCaptureDelegate();
 	g_deckLinkInput->SetCallback(delegate);
+
+
+
 
 
 	// Block main thread until signal occurs

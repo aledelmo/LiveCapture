@@ -4,10 +4,16 @@
 #include <unistd.h>
 #include "Config.h"
 
+////
+#include "iostream"
+////
+
+
 BMDConfig::BMDConfig() :
 	m_deckLinkIndex(-1),
 	m_displayModeIndex(-2),
 	m_inputFlags(bmdVideoInputFlagDefault),
+	m_port(-3),
 	m_pixelFormat(bmdFormat8BitYUV),
 	m_deckLinkName(),
 	m_displayModeName()
@@ -28,7 +34,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	int		ch;
     char    *arg;
 
-	while ((ch = getopt(argc, argv, "d:?h3m:p:")) != -1)
+	while ((ch = getopt(argc, argv, "d:m:3:h:p")) != -1)
 	{
 		switch (ch)
 		{
@@ -43,6 +49,10 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 			case '3':
 				m_inputFlags |= bmdVideoInputDualStream3D;
 				break;
+
+		    case 'h':
+                m_port = int(strtol(optarg, &arg, 0));
+                break;
 
 			case 'p':
 				switch(int(strtol(optarg, &arg, 0)))
@@ -65,6 +75,12 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 		fprintf(stderr, "You must select a device\n");
 		DisplayUsage(1);
 	}
+
+	if (m_port != 5005 and m_port !=5555)
+	{
+        printf("Wrong port : please use 5005 for LEFT and 5555 for right\n");
+	}
+
 
 	if (m_displayModeIndex < -1)
 	{
@@ -374,6 +390,13 @@ void BMDConfig::DisplayConfiguration()
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
 		GetPixelFormatName(m_pixelFormat)
 	);
+}
+
+
+const char* BMDConfig::SetAdressZMQ() {
+    std::string adress = "tcp://*:"+ std::to_string(m_port);
+    std::cout<<adress<<std::endl;
+    return adress.c_str();
 }
 
 const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)

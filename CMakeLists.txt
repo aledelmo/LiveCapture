@@ -144,3 +144,35 @@ TARGET_LINK_LIBRARIES(Capture
         ${PLATFORM_LIBRARIES}
         ${OpenCV_LIBS}
         )
+
+
+
+
+################# TestPattern (decklink)
+
+
+
+SET(APP_HEADERS
+        src/TestPattern/TestPattern.h
+        src/TestPattern/Config.cpp
+        src/TestPattern/Config.h
+        src/TestPattern/VideoFrame3D.cpp
+        src/TestPattern/VideoFrame3D.h
+        )
+
+ADD_EXECUTABLE(TestPattern
+        src/TestPattern/TestPattern.cpp
+        ${APP_HEADERS}
+        ${PLATFORM_SOURCES}
+        )
+
+TARGET_INCLUDE_DIRECTORIES(TestPattern PRIVATE
+        ${DECKLINK_SDK_INCLUDE_DIR}
+        ${PLATFORM_INCLUDE_DIR}
+        )
+
+TARGET_LINK_LIBRARIES(TestPattern
+        cppzmq
+        ${PLATFORM_LIBRARIES}
+        ${OpenCV_LIBS}
+        )
