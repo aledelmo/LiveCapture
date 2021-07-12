@@ -233,7 +233,7 @@ void BMDConfig::DisplayUsage(int status) const
 	char*							displayModeName;
 
 	fprintf(stderr,
-		"Usage: Capture -d <device id> -m <mode id> -h <port> [OPTIONS]\n"
+		"Usage: VideoStreaming -d <device id> -m <mode id> -h <port> [OPTIONS]\n"
 		"\n"
 		"    -d <device id>:\n"
 	);
@@ -355,10 +355,10 @@ bail:
 		"         0:  8 bit YUV (4:2:2) (default)\n"
 		"         1:  10 bit YUV (4:2:2)\n"
 		"         2:  10 bit RGB (4:4:4)\n"
-		"    -3   Capture Stereoscopic 3D (Requires 3D Hardware support)\n"
+		"    -3   VideoStreaming Stereoscopic 3D (Requires 3D Hardware support)\n"
         "    -h   ZMQ publishing port\n"
 		"\n"
-		"    Capture -d 0 -m 2 -h 5005 \n"
+		"    VideoStreaming -d 0 -m 2 -h 5005 \n"
 	);
 
     deckLinkIterator->Release();
@@ -381,7 +381,7 @@ bail:
 void BMDConfig::DisplayConfiguration()
 {
 	fprintf(stderr, "Capturing with the following configuration:\n"
-		" - Capture device: %s\n"
+		" - VideoStreaming device: %s\n"
 		" - Video mode: %s %s\n"
 		" - Pixel format: %s\n"
 		" - Publishing bind to port: %i\n",

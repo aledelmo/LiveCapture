@@ -616,7 +616,7 @@ int main(int argc, char* argv[])
 	}
 	catch (const std::runtime_error& e)
 	{
-		std::cerr << "Capture failed: " << e.what() << std::endl;
+		std::cerr << "VideoStreaming failed: " << e.what() << std::endl;
 		return 1;
 	}
 

@@ -1,6 +1,3 @@
-libs/ZMQ/cppzmq-build
-libs/ZMQ/libzmq-build
-
 # Prerequisites
 *.d
 

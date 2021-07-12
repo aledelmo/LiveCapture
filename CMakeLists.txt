@@ -5,17 +5,16 @@ SET(CMAKE_CXX_STANDARD 14)
 
 # Option to set path for DeckLink SDK
 if (NOT DEFINED DECKLINK_SDK_INCLUDE_DIR)
-    SET(DECKLINK_SDK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+    SET(DECKLINK_SDK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/DeckLinkSDK12)
 endif ()
 
 # ZMQ API
-SET(ZeroMQ_DIR libs/ZMQ/libzmq-build)
-find_package(cppzmq PATHS libs/ZMQ/cppzmq-build)
-
+SET(ZeroMQ_DIR libs/ZMQ/libzmq/build)
+find_package(cppzmq PATHS libs/ZMQ/cppzmq/build)
 
 # OpenCV API
 #set (OpenCV_DIR /home/imag2/StereoMatching/LiveCapture/libs/opencv-3.3.0/build)
-find_package(OpenCV 3.3 EXACT PATHS libs/opencv-3.3.0/build NO_DEFAULT_PATH)
+find_package(OpenCV 3.3 EXACT PATHS libs/opencv/build NO_DEFAULT_PATH)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # DeckLink API
@@ -30,64 +29,17 @@ SET(PLATFORM_INCLUDE_DIR libs/Linux)
 
 LIST(APPEND PLATFORM_LIBRARIES dl pthread)
 
-################## DECKLINK ONLY
-ADD_EXECUTABLE(DeckLinkIterator
-        src/DeckLinkIterator/main.cpp
-        ${PLATFORM_SOURCES})
-
-TARGET_INCLUDE_DIRECTORIES(DeckLinkIterator PRIVATE
-        ${DECKLINK_SDK_INCLUDE_DIR}
-        ${PLATFORM_INCLUDE_DIR}
-        )
-
-TARGET_LINK_LIBRARIES(DeckLinkIterator
-        ${PLATFORM_LIBRARIES}
-        ${OpenCV_LIBS}
-        )
-
-ADD_EXECUTABLE(ScheduledPlayback
-        src/ScheduledPlayback/main.cpp
-        ${PLATFORM_SOURCES}
-        )
-
-TARGET_INCLUDE_DIRECTORIES(ScheduledPlayback PRIVATE
-        ${DECKLINK_SDK_INCLUDE_DIR}
-        ${PLATFORM_INCLUDE_DIR}
-        )
-
-TARGET_LINK_LIBRARIES(ScheduledPlayback
-        ${PLATFORM_LIBRARIES}
-        ${OpenCV_LIBS}
-        )
-
-################## OPENCV ONLY
-
-ADD_EXECUTABLE(OpenCVExample
-        src/OpenCVExample/main.cpp
-        ${PLATFORM_SOURCES}
-        )
-
-TARGET_INCLUDE_DIRECTORIES(OpenCVExample PRIVATE
-        ${DECKLINK_SDK_INCLUDE_DIR}
-        ${PLATFORM_INCLUDE_DIR}
-        )
-
-TARGET_LINK_LIBRARIES(OpenCVExample
-        ${PLATFORM_LIBRARIES}
-        ${OpenCV_LIBS}
-        )
-
-################## DECKLINK + OPENCV
+################## DeckLink+OpenCV Example
 
 SET(APP_HEADERS
-        src/Decklink_opencv/com_ptr.h
-        src/Decklink_opencv/com_utils.h
-        src/Decklink_opencv/DeviceManager.h
-        src/Decklink_opencv/LiveVideoWithOpenCV.h
+        src/examples/LiveVideoWithOpenCV/com_ptr.h
+        src/examples/LiveVideoWithOpenCV/com_utils.h
+        src/examples/LiveVideoWithOpenCV/DeviceManager.h
+        src/examples/LiveVideoWithOpenCV/LiveVideoWithOpenCV.h
         )
 
 ADD_EXECUTABLE(LiveVideoWithOpenCV
-        src/Decklink_opencv/LiveVideoWithOpenCV.cpp
+        src/examples/LiveVideoWithOpenCV/LiveVideoWithOpenCV.cpp
         ${APP_HEADERS}
         ${PLATFORM_SOURCES}
         )
@@ -102,34 +54,16 @@ TARGET_LINK_LIBRARIES(LiveVideoWithOpenCV
         ${OpenCV_LIBS}
         )
 
-################## ZMQ + OPENCV
-
-ADD_EXECUTABLE(ZMQ_OpenCV
-        src/ZMQ_OpenCV/client.cpp
-        ${PLATFORM_SOURCES}
-        )
-
-TARGET_INCLUDE_DIRECTORIES(ZMQ_OpenCV PRIVATE
-        ${DECKLINK_SDK_INCLUDE_DIR}
-        ${PLATFORM_INCLUDE_DIR}
-        )
-
-TARGET_LINK_LIBRARIES(ZMQ_OpenCV
-        cppzmq
-        ${PLATFORM_LIBRARIES}
-        ${OpenCV_LIBS}
-        )
-
-################## ZMQ + OpenCV + DeckLink
+################## DeckLink+OpenCV+ZMQ Video acquisition and forwarding
 
 SET(APP_HEADERS
-        src/Capture/Capture.h
-        src/Capture/Config.cpp
-        src/Capture/Config.h
+        src/VideoStreaming/Client.h
+        src/VideoStreaming/Config.cpp
+        src/VideoStreaming/Config.h
         )
 
 ADD_EXECUTABLE(Capture
-        src/Capture/Capture.cpp
+        src/VideoStreaming/Client.cpp
         ${APP_HEADERS}
         ${PLATFORM_SOURCES}
         )
@@ -145,18 +79,18 @@ TARGET_LINK_LIBRARIES(Capture
         ${OpenCV_LIBS}
         )
 
-################# TestPattern (DeckLink)
+################# DeckLink test pattern generation
 
 SET(APP_HEADERS
-        src/TestPattern/TestPattern.h
-        src/TestPattern/Config.cpp
-        src/TestPattern/Config.h
-        src/TestPattern/VideoFrame3D.cpp
-        src/TestPattern/VideoFrame3D.h
+        src/GeneratePattern/TestPattern.h
+        src/GeneratePattern/Config.cpp
+        src/GeneratePattern/Config.h
+        src/GeneratePattern/VideoFrame3D.cpp
+        src/GeneratePattern/VideoFrame3D.h
         )
 
 ADD_EXECUTABLE(TestPattern
-        src/TestPattern/TestPattern.cpp
+        src/GeneratePattern/TestPattern.cpp
         ${APP_HEADERS}
         ${PLATFORM_SOURCES}
         )

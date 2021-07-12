@@ -234,7 +234,7 @@ void BMDConfig::DisplayUsage(int status)
 	char*							displayModeName;
 
 	fprintf(stderr,
-		"Usage: TestPattern -d <device id> -m <mode id> [OPTIONS]\n"
+		"Usage: GeneratePattern -d <device id> -m <mode id> [OPTIONS]\n"
 		"\n"
 		"    -d <device id>:\n"
 	);
@@ -333,7 +333,7 @@ bail:
 		"\n"
 		"Output a test pattern eg:\n"
 		"\n"
-		"    TestPattern -d 0 -m 2 \n"
+		"    GeneratePattern -d 0 -m 2 \n"
 	);
 
 	if (deckLinkIterator != NULL)

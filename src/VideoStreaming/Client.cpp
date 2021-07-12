@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <csignal>
 
-#include "Capture.h"
+#include "Client.h"
 #include "Config.h"
 
 #include "DeckLinkAPI.h"
@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 		pthread_cond_wait(&g_sleepCond, &g_sleepMutex);
 		pthread_mutex_unlock(&g_sleepMutex);
 
-		fprintf(stderr, "Stopping Capture\n");
+		fprintf(stderr, "Stopping VideoStreaming\n");
 		g_deckLinkInput->StopStreams();
 		g_deckLinkInput->DisableAudioInput();
 		g_deckLinkInput->DisableVideoInput();
