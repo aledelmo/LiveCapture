@@ -62,7 +62,7 @@ make -j20
 Compile client-side streaming service
 ```bash
 mkdir -p build && cd build
-cmake .. 
+cmake -DWITH_FFMPEG=0 .. 
 make -j20
 ```
 
