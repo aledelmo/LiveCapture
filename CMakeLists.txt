@@ -145,12 +145,7 @@ TARGET_LINK_LIBRARIES(Capture
         ${OpenCV_LIBS}
         )
 
-
-
-
-################# TestPattern (decklink)
-
-
+################# TestPattern (DeckLink)
 
 SET(APP_HEADERS
         src/TestPattern/TestPattern.h

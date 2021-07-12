@@ -1,11 +1,10 @@
-import time
-
 import zmq
 import numpy as np
 from PIL import Image
 import io
 import cv2
 import argparse
+
 
 def main(port1, port2):
     context1 = zmq.Context()
@@ -26,23 +25,20 @@ def main(port1, port2):
         packet2 = socket2.recv()
         socket2.send_string("1")
 
-
-        imageL = np.array(Image.open(io.BytesIO(packet1)))
-        imageR = np.array(Image.open(io.BytesIO(packet2)))
-        print(imageR.shape)
-        image = np.hstack((imageL, imageR))
-        imS = cv2.resize(image, (int(w/2), int(h/4)))                # Resize image
-        cv2.imshow("image", imS)
+        img_left = np.array(Image.open(io.BytesIO(packet1)))
+        img_right = np.array(Image.open(io.BytesIO(packet2)))
+        print(img_right.shape)
+        image = np.hstack((img_left, img_right))
+        image = cv2.resize(image, (int(w/2), int(h/4)))
+        cv2.imshow("image", image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-
-
-
     cv2.destroyAllWindows()
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('--port1')
     parser.add_argument('--port2')
 
