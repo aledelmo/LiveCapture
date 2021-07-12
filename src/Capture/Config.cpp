@@ -3,10 +3,7 @@
 #include <cstring>
 #include <unistd.h>
 #include "Config.h"
-
-////
 #include "iostream"
-////
 
 
 BMDConfig::BMDConfig() :
@@ -78,7 +75,8 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 
 	if (m_port != 5005 and m_port !=5555)
 	{
-        printf("Wrong port : please use 5005 for LEFT and 5555 for right\n");
+        fprintf(stderr, "Wrong port : please use 5005 for LEFT and 5555 for right\n");
+        DisplayUsage(1);
 	}
 
 
@@ -235,7 +233,7 @@ void BMDConfig::DisplayUsage(int status) const
 	char*							displayModeName;
 
 	fprintf(stderr,
-		"Usage: Capture -d <device id> -m <mode id> [OPTIONS]\n"
+		"Usage: Capture -d <device id> -m <mode id> -h <port> [OPTIONS]\n"
 		"\n"
 		"    -d <device id>:\n"
 	);
@@ -357,9 +355,10 @@ bail:
 		"         0:  8 bit YUV (4:2:2) (default)\n"
 		"         1:  10 bit YUV (4:2:2)\n"
 		"         2:  10 bit RGB (4:4:4)\n"
-		"    -3                   Capture Stereoscopic 3D (Requires 3D Hardware support)\n"
+		"    -3   Capture Stereoscopic 3D (Requires 3D Hardware support)\n"
+        "    -h   ZMQ publishing port\n"
 		"\n"
-		"    Capture -d 0 -m 2 -n 50 \n"
+		"    Capture -d 0 -m 2 -h 5005 \n"
 	);
 
     deckLinkIterator->Release();
@@ -384,19 +383,20 @@ void BMDConfig::DisplayConfiguration()
 	fprintf(stderr, "Capturing with the following configuration:\n"
 		" - Capture device: %s\n"
 		" - Video mode: %s %s\n"
-		" - Pixel format: %s\n",
+		" - Pixel format: %s\n"
+		" - Publishing bind to port: %i\n",
 		m_deckLinkName,
 		m_displayModeName,
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
-		GetPixelFormatName(m_pixelFormat)
+		GetPixelFormatName(m_pixelFormat),
+		m_port
 	);
 }
 
 
-const char* BMDConfig::SetAdressZMQ() {
-    std::string adress = "tcp://*:"+ std::to_string(m_port);
-    std::cout<<adress<<std::endl;
-    return adress.c_str();
+std::string BMDConfig::SetAddressZMQ() const {
+    std::string address = "tcp://*:"+ std::to_string(m_port);
+    return address;
 }
 
 const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)

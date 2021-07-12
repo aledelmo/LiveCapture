@@ -23,7 +23,6 @@ static unsigned long	g_frameCount = 0;
 
 void *context = zmq_ctx_new();
 void *publisher = zmq_socket(context, ZMQ_REQ);
-char request [1];
 
 DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
 	m_refCount(1),
@@ -51,8 +50,8 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 {
 	IDeckLinkVideoFrame*				rightEyeFrame = nullptr;
 	IDeckLinkVideoFrame3DExtensions*	threeDExtensions = nullptr;
-    //IDeckLinkVideoInputFrame* m_videoFrame8BitYUV = nullptr;
 	void* data;
+    char request [1];
 
 	if (videoFrame)
 	{
@@ -78,24 +77,26 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 				rightEyeFrame != nullptr ? "Valid Frame (3D left/right)" : "Valid Frame",
 				videoFrame->GetRowBytes() * videoFrame->GetHeight());
 
+            const auto width = int(videoFrame->GetWidth());
+            const auto height = int(videoFrame->GetHeight());
 
-            videoFrame->GetBytes(&data);
-            const auto width = videoFrame->GetWidth();
-            const auto height = videoFrame->GetHeight();
-
-            /*
             if (m_pixelFormat != bmdFormat8BitYUV)
             {
-                ConvertFrame(videoFrame, m_videoFrame8BitYUV);
+                IDeckLinkMutableVideoFrame* m_videoFrame8BitYUV;
+                IDeckLinkVideoConversion* frameConverter = CreateVideoConversionInstance();
+                frameConverter->ConvertFrame(videoFrame, m_videoFrame8BitYUV);
                 m_videoFrame8BitYUV->GetBytes(&data);
-            }*/
+            }
+            else
+            {
+                videoFrame->GetBytes(&data);
+            }
 
             cv::Mat uyvy(height, width, CV_8UC2, data);
-            cv::Mat image(height, width, CV_8UC1);
-            cv:cvtColor(uyvy, image, cv::COLOR_YUV2RGB_UYVY);
+            cv::UMat image(height, width, CV_8UC1);
+            cvtColor(uyvy, image, cv::COLOR_YUV2RGB_UYVY);
             std::vector <uchar> buffer;
             cv::imencode(".png", image, buffer);
-
 
             zmq_send(publisher, buffer.data(),buffer.size(), ZMQ_NOBLOCK);
             zmq_recv(publisher, request, 1, ZMQ_NOBLOCK);
@@ -196,11 +197,8 @@ int main(int argc, char *argv[])
 	}
     //connect/bind publisher to port g_config.m_port
 
-//	memset(adress, "tcp://*:" + std::to_string(g_config.m_port), 12 );
 
-    zmq_bind(publisher,g_config.SetAdressZMQ());
-
-    std::cout<<"publisher binded to port : "<<g_config.m_port<<std::endl;
+    zmq_bind(publisher,g_config.SetAddressZMQ().c_str());
 
 	// Get the DeckLink device
 	deckLink = g_config.GetSelectedDeckLink();

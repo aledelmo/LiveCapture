@@ -1,6 +1,6 @@
 #ifndef BMD_CONFIG_H
 #define BMD_CONFIG_H
-
+#include "iostream"
 #include "DeckLinkAPI.h"
 
 class BMDConfig
@@ -12,7 +12,7 @@ public:
 	bool ParseArguments(int argc,  char** argv);
 	void DisplayUsage(int status) const;
 	void DisplayConfiguration();
-	const char* SetAdressZMQ();
+	std::string SetAddressZMQ() const ;
 
 	int						m_deckLinkIndex;
 	int						m_displayModeIndex;
