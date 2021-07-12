@@ -53,7 +53,7 @@ make -j20
 ```bash
 cd libs/opencv
 mkdir -p build && cd build
-cmake ..
+cmake -DWITH_FFMPEG=0 ..
 make -j20
 ```
 
@@ -62,7 +62,7 @@ make -j20
 Compile client-side streaming service
 ```bash
 mkdir -p build && cd build
-cmake -DWITH_FFMPEG=0 .. 
+cmake .. 
 make -j20
 ```
 
