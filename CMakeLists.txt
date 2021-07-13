@@ -62,18 +62,18 @@ SET(APP_HEADERS
         src/VideoStreaming/Config.h
         )
 
-ADD_EXECUTABLE(Capture
+ADD_EXECUTABLE(Client
         src/VideoStreaming/Client.cpp
         ${APP_HEADERS}
         ${PLATFORM_SOURCES}
         )
 
-TARGET_INCLUDE_DIRECTORIES(Capture PRIVATE
+TARGET_INCLUDE_DIRECTORIES(Client PRIVATE
         ${DECKLINK_SDK_INCLUDE_DIR}
         ${PLATFORM_INCLUDE_DIR}
         )
 
-TARGET_LINK_LIBRARIES(Capture
+TARGET_LINK_LIBRARIES(Client
         cppzmq
         ${PLATFORM_LIBRARIES}
         ${OpenCV_LIBS}
@@ -89,18 +89,18 @@ SET(APP_HEADERS
         src/GeneratePattern/VideoFrame3D.h
         )
 
-ADD_EXECUTABLE(TestPattern
+ADD_EXECUTABLE(GeneratePattern
         src/GeneratePattern/TestPattern.cpp
         ${APP_HEADERS}
         ${PLATFORM_SOURCES}
         )
 
-TARGET_INCLUDE_DIRECTORIES(TestPattern PRIVATE
+TARGET_INCLUDE_DIRECTORIES(GeneratePattern PRIVATE
         ${DECKLINK_SDK_INCLUDE_DIR}
         ${PLATFORM_INCLUDE_DIR}
         )
 
-TARGET_LINK_LIBRARIES(TestPattern
+TARGET_LINK_LIBRARIES(GeneratePattern
         cppzmq
         ${PLATFORM_LIBRARIES}
         ${OpenCV_LIBS}

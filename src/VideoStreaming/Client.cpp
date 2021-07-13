@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 		pthread_cond_wait(&g_sleepCond, &g_sleepMutex);
 		pthread_mutex_unlock(&g_sleepMutex);
 
-		fprintf(stderr, "Stopping VideoStreaming\n");
+		fprintf(stderr, "Stopping Client\n");
 		g_deckLinkInput->StopStreams();
 		g_deckLinkInput->DisableAudioInput();
 		g_deckLinkInput->DisableVideoInput();
