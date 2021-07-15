@@ -22,7 +22,7 @@ static IDeckLinkInput*	g_deckLinkInput = nullptr;
 static unsigned long	g_frameCount = 0;
 
 zmq::context_t context(1);
-zmq::socket_t publisher(context, ZMQ_PUB);
+zmq::socket_t publisher(context, ZMQ_XPUB);
 std::string              topic;
 
 
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
 	// get topic information and bind to specified port
 	topic= g_config.SetTopicPublisher();
-    publisher.bind(g_config.SetAddressZMQ().c_str());
+    publisher.connect(g_config.SetAddressZMQ().c_str());
 
 
 

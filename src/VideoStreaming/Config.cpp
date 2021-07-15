@@ -409,7 +409,8 @@ void BMDConfig::DisplayConfiguration()
 
 
 std::string BMDConfig::SetAddressZMQ() const {
-    std::string address = "tcp://*:"+ std::to_string(m_port);
+    std::string address = "tcp://127.0.0.1:"+ std::to_string(m_port);
+
     return address;
 }
 
