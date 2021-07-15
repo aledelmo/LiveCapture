@@ -13,10 +13,12 @@ public:
 	void DisplayUsage(int status) const;
 	void DisplayConfiguration();
 	std::string SetAddressZMQ() const ;
+	std::string SetTopicPublisher() const ;
 
 	int						m_deckLinkIndex;
 	int						m_displayModeIndex;
 	int                     m_port;
+	int                     m_side;
 
 	BMDVideoInputFlags		m_inputFlags;
 	BMDPixelFormat			m_pixelFormat;

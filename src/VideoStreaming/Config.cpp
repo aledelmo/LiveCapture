@@ -31,7 +31,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	int		ch;
     char    *arg;
 
-	while ((ch = getopt(argc, argv, "d:m:3:h:p")) != -1)
+	while ((ch = getopt(argc, argv, "d:m:3:h:s:p")) != -1)
 	{
 		switch (ch)
 		{
@@ -49,7 +49,14 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 
 		    case 'h':
                 m_port = int(strtol(optarg, &arg, 0));
+                std::cout<<"port : "<<m_port<<std::endl;
                 break;
+
+		    case 's':
+		        m_side = int(strtol(optarg, &arg, 0));
+                std::cout<<"side : "<<m_side<<std::endl;
+                break;
+
 
 			case 'p':
 				switch(int(strtol(optarg, &arg, 0)))
@@ -73,12 +80,15 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 		DisplayUsage(1);
 	}
 
-	if (m_port != 5005 and m_port !=5555)
+	if (m_port<1 or m_port>9999)
 	{
-        fprintf(stderr, "Wrong port : please use 5005 for LEFT and 5555 for right\n");
+        fprintf(stderr, "Wrong port : please use a port with 4 digits\n");
         DisplayUsage(1);
 	}
 
+//	if (m_side < 0 or m_side > 1)
+//        fprintf(stderr, "side : 0 for left and 1 for right");
+//        DisplayUsage(1);
 
 	if (m_displayModeIndex < -1)
 	{
@@ -357,8 +367,9 @@ bail:
 		"         2:  10 bit RGB (4:4:4)\n"
 		"    -3   Stereoscopic 3D (Requires 3D Hardware support)\n"
         "    -h   ZMQ publishing port\n"
+        "    -s   ZMQ publishing topic\n"
 		"\n"
-		"    Client -d 0 -m 2 -h 5005 \n"
+		"    Client -d 0 -m 2 -h 5005 -s 0\n"
 	);
 
     deckLinkIterator->Release();
@@ -384,12 +395,15 @@ void BMDConfig::DisplayConfiguration()
 		" - Streaming device: %s\n"
 		" - Video mode: %s %s\n"
 		" - Pixel format: %s\n"
-		" - Publishing bind to port: %i\n",
+		" - Publishing bind to port: %i\n"
+		" - Publishing topic : %s\n",
+
 		m_deckLinkName,
 		m_displayModeName,
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
 		GetPixelFormatName(m_pixelFormat),
-		m_port
+		m_port,
+		(m_side == 0) ? "left" : "right"
 	);
 }
 
@@ -398,6 +412,15 @@ std::string BMDConfig::SetAddressZMQ() const {
     std::string address = "tcp://*:"+ std::to_string(m_port);
     return address;
 }
+
+
+std::string BMDConfig::SetTopicPublisher() const {
+    std::string topic;
+    topic = (m_side == 0) ? "left" : "right";
+    return topic;
+}
+
+
 
 const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)
 {

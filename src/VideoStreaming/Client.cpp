@@ -21,8 +21,10 @@ static IDeckLinkInput*	g_deckLinkInput = nullptr;
 
 static unsigned long	g_frameCount = 0;
 
-void *context = zmq_ctx_new();
-void *publisher = zmq_socket(context, ZMQ_REQ);
+zmq::context_t context(1);
+zmq::socket_t publisher(context, ZMQ_PUB);
+std::string              topic;
+
 
 DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
 	m_refCount(1),
@@ -96,10 +98,10 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             cv::UMat image(height, width, CV_8UC1);
             cvtColor(uyvy, image, cv::COLOR_YUV2RGB_UYVY);
             std::vector <uchar> buffer;
-            cv::imencode(".png", image, buffer);
+            cv::imencode(".jpg", image, buffer);
 
-            zmq_send(publisher, buffer.data(),buffer.size(), ZMQ_NOBLOCK);
-            zmq_recv(publisher, request, 1, ZMQ_NOBLOCK);
+            publisher.send(topic.data(), topic.size(), ZMQ_SNDMORE);
+            publisher.send(buffer.data(), buffer.size());
 		}
 		g_frameCount++;
 	}
@@ -166,7 +168,6 @@ static void sigfunc(int signum)
 
 int main(int argc, char *argv[])
 {
-
     HRESULT							result;
 	int								exitStatus = 1;
 
@@ -195,12 +196,14 @@ int main(int argc, char *argv[])
 		g_config.DisplayUsage(exitStatus);
 		goto bail;
 	}
-    //connect/bind publisher to port g_config.m_port
+
+	// get topic information and bind to specified port
+	topic= g_config.SetTopicPublisher();
+    publisher.bind(g_config.SetAddressZMQ().c_str());
 
 
-    zmq_bind(publisher,g_config.SetAddressZMQ().c_str());
 
-	// Get the DeckLink device
+    // Get the DeckLink device
 	deckLink = g_config.GetSelectedDeckLink();
 	if (deckLink == nullptr)
 	{
