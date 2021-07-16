@@ -8,11 +8,13 @@
 
 BMDConfig::BMDConfig() :
 	m_deckLinkIndex(-1),
+	m_deckLinkIndexLeft(-1),
 	m_displayModeIndex(-2),
 	m_inputFlags(bmdVideoInputFlagDefault),
 	m_port(-3),
 	m_pixelFormat(bmdFormat8BitYUV),
 	m_deckLinkName(),
+	m_deckLinkNameLeft(),
 	m_displayModeName()
 {
 }
@@ -21,6 +23,9 @@ BMDConfig::~BMDConfig()
 {
 	if (m_deckLinkName)
 		free(m_deckLinkName);
+
+    if (m_deckLinkNameLeft)
+        free(m_deckLinkNameLeft);
 
 	if (m_displayModeName)
 		free(m_displayModeName);
@@ -31,13 +36,17 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	int		ch;
     char    *arg;
 
-	while ((ch = getopt(argc, argv, "d:m:3:h:t:p")) != -1)
+	while ((ch = getopt(argc, argv, "r:l:m:3:p:f")) != -1)
 	{
 		switch (ch)
 		{
-			case 'd':
+			case 'r':
 				m_deckLinkIndex = int(strtol(optarg, &arg, 0));
 				break;
+
+			case 'l':
+                m_deckLinkIndexLeft = int(strtol(optarg, &arg, 0));
+                break;
 
 			case 'm':
 				m_displayModeIndex = int(strtol(optarg, &arg, 0));
@@ -47,15 +56,11 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 				m_inputFlags |= bmdVideoInputDualStream3D;
 				break;
 
-		    case 'h':
+		    case 'p':
                 m_port = int(strtol(optarg, &arg, 0));
                 break;
 
-		    case 't':
-		        m_topic = optarg;
-                break;
-
-			case 'p':
+			case 'f':
 				switch(int(strtol(optarg, &arg, 0)))
 				{
 					case 0: m_pixelFormat = bmdFormat8BitYUV; break;
@@ -77,6 +82,18 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 		DisplayUsage(1);
 	}
 
+    if (m_deckLinkIndexLeft < 0)
+    {
+        fprintf(stderr, "You must select a device\n");
+        DisplayUsage(1);
+    }
+
+    if (m_deckLinkIndex == m_deckLinkIndexLeft)
+    {
+        fprintf(stderr, "Right and Left devices must be different\n");
+        DisplayUsage(1);
+    }
+
 	if (m_port<1 or m_port>9999)
 	{
         fprintf(stderr, "Wrong port : please use a port with 4 digits\n");
@@ -90,8 +107,9 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	}
 
 	// Get device and display mode names
-	IDeckLink* deckLink = GetSelectedDeckLink();
-	if (deckLink != nullptr)
+	IDeckLink* deckLink = GetSelectedDeckLink(m_deckLinkIndex);
+    IDeckLink* deckLinkLeft = GetSelectedDeckLink(m_deckLinkIndexLeft);
+	if ((deckLink != nullptr) && (deckLinkLeft != nullptr))
 	{
 		if (m_displayModeIndex != -1)
 		{
@@ -112,22 +130,24 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 		}
 
 		deckLink->GetDisplayName((const char**)&m_deckLinkName);
+        deckLinkLeft->GetDisplayName((const char**)&m_deckLinkNameLeft);
 		deckLink->Release();
+        deckLinkLeft->Release();
 	}
 	else
 	{
 		m_deckLinkName = strdup("Invalid");
+        m_deckLinkNameLeft = strdup("Invalid");
 	}
 
 	return true;
 }
 
-IDeckLink* BMDConfig::GetSelectedDeckLink() const
+IDeckLink* BMDConfig::GetSelectedDeckLink(int i)
 {
 	HRESULT				result;
 	IDeckLink*			deckLink;
 	IDeckLinkIterator*	deckLinkIterator = CreateDeckLinkIteratorInstance();
-	int					i = m_deckLinkIndex;
 
 	if (!deckLinkIterator)
 	{
@@ -236,9 +256,9 @@ void BMDConfig::DisplayUsage(int status) const
 	char*							displayModeName;
 
 	fprintf(stderr,
-		"Usage: Client -d <device id> -m <mode id> -h <port> [OPTIONS]\n"
+		"Usage: Client -r <device id> -l <device id> -m <mode id> -p <port> [OPTIONS]\n"
 		"\n"
-		"    -d <device id>:\n"
+		"    -l <device id> -r <device id>:\n"
 	);
 
 	// Loop through all available devices
@@ -269,11 +289,12 @@ void BMDConfig::DisplayUsage(int status) const
 		if (result == S_OK)
 		{
 			fprintf(stderr,
-				"        %2d: %s%s%s\n",
+				"        %2d: %s%s%s%s\n",
 				deckLinkCount,
 				deckLinkName,
 				deckLinkActive ? "" : " (inactive)",
-				deckLinkCount == m_deckLinkIndex ? " (selected)" : ""
+				deckLinkCount == m_deckLinkIndex ? " (selected Right)" : "",
+				deckLinkCount == m_deckLinkIndexLeft ? " (selected Left)" : ""
 			);
 
 			free(deckLinkName);
@@ -360,9 +381,8 @@ bail:
 		"         2:  10 bit RGB (4:4:4)\n"
 		"    -3   Stereoscopic 3D (Requires 3D Hardware support)\n"
         "    -h   ZMQ publishing port\n"
-        "    -t   ZMQ publishing topic\n"
 		"\n"
-        "    Client -d 0 -m 2 -h 5005 -t \"left\"\n"
+        "    Client -r 0 -l 3 -m 2 -p 5005\n"
 	);
 
     deckLinkIterator->Release();
@@ -385,17 +405,15 @@ bail:
 void BMDConfig::DisplayConfiguration()
 {
 	fprintf(stderr, "Capturing with the following configuration:\n"
-		" - Streaming device: %s\n"
+		" - Streaming devices: Right: %s - Left: %s\n"
 		" - Video mode: %s %s\n"
 		" - Pixel format: %s\n"
-		" - Publishing bind to port: %i\n"
-		" - Publishing on topic : %s\n",
-		m_deckLinkName,
+		" - Publishing frames to port: %i\n",
+		m_deckLinkName, m_deckLinkNameLeft,
 		m_displayModeName,
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
 		GetPixelFormatName(m_pixelFormat),
-		m_port,
-		m_topic.c_str()
+		m_port
 	);
 }
 

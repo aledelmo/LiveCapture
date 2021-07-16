@@ -15,19 +15,20 @@ public:
 	std::string GetFullAddress() const ;
 
 	int						m_deckLinkIndex;
+	int						m_deckLinkIndexLeft;
 	int						m_displayModeIndex;
 	int                     m_port;
-	std::string             m_topic;
 
 	BMDVideoInputFlags		m_inputFlags;
 	BMDPixelFormat			m_pixelFormat;
 
 
-	IDeckLink* GetSelectedDeckLink() const;
+	static IDeckLink* GetSelectedDeckLink(int) ;
 	IDeckLinkDisplayMode* GetSelectedDeckLinkDisplayMode(IDeckLink* deckLink) const;
 
 private:
 	char*					m_deckLinkName;
+	char*					m_deckLinkNameLeft;
 	char*					m_displayModeName;
 
 	static const char* GetPixelFormatName(BMDPixelFormat pixelFormat);

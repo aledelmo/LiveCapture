@@ -13,7 +13,7 @@ class Server:
 
         ctx = zmq.Context()
         self.socket = ctx.socket(zmq.SUB)
-        self.socket.bind("tcp://127.0.0.1:"+str(port))
+        self.socket.connect("tcp://127.0.0.1:"+str(port))
         for t in ("right", "left"):
             self.socket.setsockopt_string(zmq.SUBSCRIBE, t)
 

@@ -18,18 +18,18 @@ static bool				g_do_exit = false;
 static BMDConfig		g_config;
 
 static IDeckLinkInput*	g_deckLinkInput = nullptr;
-
-static unsigned long	g_frameCount = 0;
+static IDeckLinkInput*	g_deckLinkInputLeft = nullptr;
 
 zmq::context_t context(1);
 zmq::socket_t publisher(context, ZMQ_XPUB);
 
 
-DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(const std::string& t) :
+DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(int d, const std::string& t) :
         m_refCount(1),
         m_pixelFormat(g_config.m_pixelFormat)
 {
     topic = t;
+    device = d;
 }
 
 ULONG DeckLinkCaptureDelegate::AddRef()
@@ -69,12 +69,12 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 
 		if (videoFrame->GetFlags() & bmdFrameHasNoInputSource)
 		{
-			printf("Frame received (#%lu) - No input signal detected\n", g_frameCount);
+			printf("Frame received on device (#%i) - No input signal detected\n", device);
 		}
 		else
 		{
-			printf("Frame received (#%lu) - %s - Size: %li bytes - Forwarding to %s\n",
-                   g_frameCount,
+			printf("Frame received on device (#%i) - %s - Size: %li bytes - Forwarding to %s\n",
+                   device,
                    rightEyeFrame != nullptr ? "Valid Frame (3D left/right)" : "Valid Frame",
                    videoFrame->GetRowBytes() * videoFrame->GetHeight(),
                    topic.c_str());
@@ -101,12 +101,10 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             cv::imencode(".jpg", image, buffer);
 
             zmq::message_t message_topic(topic.data(), topic.size());
-
             publisher.send(message_topic, zmq::send_flags::sndmore);
             zmq::message_t message_body(buffer.data(), buffer.size());
             publisher.send(message_body, zmq::send_flags::none);
 		}
-		g_frameCount++;
 	}
 
 	return S_OK;
@@ -172,19 +170,24 @@ static void sigfunc(int signum)
 int main(int argc, char *argv[])
 {
     HRESULT							result;
+    HRESULT							resultLeft;
 	int								exitStatus = 1;
 
 	IDeckLink*						deckLink = nullptr;
+	IDeckLink*						deckLinkLeft = nullptr;
 
 	IDeckLinkProfileAttributes*		deckLinkAttributes = nullptr;
+    IDeckLinkProfileAttributes*		deckLinkAttributesLeft = nullptr;
 	bool							formatDetectionSupported;
 	int64_t							duplexMode;
+	int64_t							duplexModeLeft;
 
 	IDeckLinkDisplayMode*			displayMode = nullptr;
 	char*							displayModeName = nullptr;
 	bool							supported;
 
 	DeckLinkCaptureDelegate*		delegate = nullptr;
+	DeckLinkCaptureDelegate*		delegateLeft = nullptr;
 
 	pthread_mutex_init(&g_sleepMutex, nullptr);
 	pthread_cond_init(&g_sleepCond, nullptr);
@@ -201,15 +204,21 @@ int main(int argc, char *argv[])
 	}
 
 	// get topic information and bind to specified port
-    publisher.connect(g_config.GetFullAddress());
+    publisher.bind(g_config.GetFullAddress());
 
     // Get the DeckLink device
-	deckLink = g_config.GetSelectedDeckLink();
+	deckLink = BMDConfig::GetSelectedDeckLink(g_config.m_deckLinkIndex);
 	if (deckLink == nullptr)
 	{
 		fprintf(stderr, "Unable to get DeckLink device %u\n", g_config.m_deckLinkIndex);
 		goto bail;
 	}
+    deckLinkLeft = BMDConfig::GetSelectedDeckLink(g_config.m_deckLinkIndexLeft);
+    if (deckLinkLeft == nullptr)
+    {
+        fprintf(stderr, "Unable to get DeckLink device %u\n", g_config.m_deckLinkIndexLeft);
+        goto bail;
+    }
 
 	result = deckLink->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&deckLinkAttributes);
 	if (result != S_OK)
@@ -217,6 +226,12 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unable to get DeckLink attributes interface\n");
 		goto bail;
 	}
+    result = deckLinkLeft->QueryInterface(IID_IDeckLinkProfileAttributes, (void**)&deckLinkAttributesLeft);
+    if (result != S_OK)
+    {
+        fprintf(stderr, "Unable to get DeckLink attributes interface\n");
+        goto bail;
+    }
 
 	// Check the DeckLink device is active
 	result = deckLinkAttributes->GetInt(BMDDeckLinkDuplex, &duplexMode);
@@ -225,9 +240,21 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "The selected DeckLink device is inactive\n");
 		goto bail;
 	}
+	result = deckLinkAttributesLeft->GetInt(BMDDeckLinkDuplex, &duplexModeLeft);
+	if ((result != S_OK) || (duplexModeLeft == bmdDuplexInactive))
+	{
+		fprintf(stderr, "The selected DeckLink device is inactive\n");
+		goto bail;
+	}
 
 	// Get the input (capture) interface of the DeckLink device
 	result = deckLink->QueryInterface(IID_IDeckLinkInput, (void**)&g_deckLinkInput);
+	if (result != S_OK)
+	{
+		fprintf(stderr, "The selected device does not have an input interface\n");
+		goto bail;
+	}
+	result = deckLinkLeft->QueryInterface(IID_IDeckLinkInput, (void**)&g_deckLinkInputLeft);
 	if (result != S_OK)
 	{
 		fprintf(stderr, "The selected device does not have an input interface\n");
@@ -290,22 +317,26 @@ int main(int argc, char *argv[])
 	g_config.DisplayConfiguration();
 
 	// Configure the capture callback
-	delegate = new DeckLinkCaptureDelegate(g_config.m_topic);
+	delegate = new DeckLinkCaptureDelegate(g_config.m_deckLinkIndex, "right");
 	g_deckLinkInput->SetCallback(delegate);
+	delegateLeft = new DeckLinkCaptureDelegate(g_config.m_deckLinkIndexLeft, "left");
+	g_deckLinkInputLeft->SetCallback(delegateLeft);
 
 	// Block main thread until signal occurs
 	while (!g_do_exit)
 	{
 		// Start capturing
 		result = g_deckLinkInput->EnableVideoInput(displayMode->GetDisplayMode(), g_config.m_pixelFormat, g_config.m_inputFlags);
-		if (result != S_OK)
+		resultLeft = g_deckLinkInputLeft->EnableVideoInput(displayMode->GetDisplayMode(), g_config.m_pixelFormat, g_config.m_inputFlags);
+		if (result != S_OK || resultLeft != S_OK )
 		{
 			fprintf(stderr, "Failed to enable video input. Is another application using the card?\n");
 			goto bail;
 		}
 
 		result = g_deckLinkInput->StartStreams();
-		if (result != S_OK)
+        resultLeft = g_deckLinkInputLeft->StartStreams();
+        if (result != S_OK || resultLeft != S_OK )
 			goto bail;
 
 		// All Okay.
@@ -317,8 +348,11 @@ int main(int argc, char *argv[])
 
 		fprintf(stderr, "Stopping Client\n");
 		g_deckLinkInput->StopStreams();
+        g_deckLinkInputLeft->StopStreams();
 		g_deckLinkInput->DisableAudioInput();
+        g_deckLinkInputLeft->DisableAudioInput();
 		g_deckLinkInput->DisableVideoInput();
+		g_deckLinkInputLeft->DisableVideoInput();
 	}
 
 bail:
@@ -332,11 +366,18 @@ bail:
 
 	if (delegate != nullptr)
 		delegate->Release();
+	if (delegateLeft != nullptr)
+        delegateLeft->Release();
 
 	if (g_deckLinkInput != nullptr)
 	{
 		g_deckLinkInput->Release();
 		g_deckLinkInput = nullptr;
+	}
+	if (g_deckLinkInputLeft != nullptr)
+	{
+        g_deckLinkInputLeft->Release();
+        g_deckLinkInputLeft = nullptr;
 	}
 
 	if (deckLinkAttributes != nullptr)
@@ -344,6 +385,8 @@ bail:
 
 	if (deckLink != nullptr)
 		deckLink->Release();
+	if (deckLinkLeft != nullptr)
+        deckLinkLeft->Release();
 
 	return exitStatus;
 }

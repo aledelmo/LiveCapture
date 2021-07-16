@@ -7,7 +7,7 @@
 class DeckLinkCaptureDelegate : public IDeckLinkInputCallback
 {
 public:
-	explicit DeckLinkCaptureDelegate(const std::string& t);
+	explicit DeckLinkCaptureDelegate(int d, const std::string& t);
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv) override { return E_NOINTERFACE; }
 	ULONG STDMETHODCALLTYPE AddRef() override;
@@ -17,6 +17,7 @@ public:
 
 private:
     std::string topic;
+    int device;
 	int32_t				m_refCount;
 	BMDPixelFormat		m_pixelFormat;
 };
