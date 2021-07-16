@@ -25,10 +25,11 @@ zmq::context_t context(1);
 zmq::socket_t publisher(context, ZMQ_XPUB);
 
 
-DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
-	m_refCount(1),
-	m_pixelFormat(g_config.m_pixelFormat)
+DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(const std::string& t) :
+        m_refCount(1),
+        m_pixelFormat(g_config.m_pixelFormat)
 {
+    topic = t;
 }
 
 ULONG DeckLinkCaptureDelegate::AddRef()
@@ -52,7 +53,6 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 	IDeckLinkVideoFrame*				rightEyeFrame = nullptr;
 	IDeckLinkVideoFrame3DExtensions*	threeDExtensions = nullptr;
 	void* data;
-    char request [1];
 
 	if (videoFrame)
 	{
@@ -73,10 +73,11 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 		}
 		else
 		{
-			printf("Frame received (#%lu) - %s - Size: %li bytes\n",
-				g_frameCount,
-				rightEyeFrame != nullptr ? "Valid Frame (3D left/right)" : "Valid Frame",
-				videoFrame->GetRowBytes() * videoFrame->GetHeight());
+			printf("Frame received (#%lu) - %s - Size: %li bytes - Forwarding to %s\n",
+                   g_frameCount,
+                   rightEyeFrame != nullptr ? "Valid Frame (3D left/right)" : "Valid Frame",
+                   videoFrame->GetRowBytes() * videoFrame->GetHeight(),
+                   topic.c_str());
 
             const auto width = int(videoFrame->GetWidth());
             const auto height = int(videoFrame->GetHeight());
@@ -99,7 +100,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             std::vector <uchar> buffer;
             cv::imencode(".jpg", image, buffer);
 
-            zmq::message_t message_topic(g_config.m_topic.data(), g_config.m_topic.size());
+            zmq::message_t message_topic(topic.data(), topic.size());
 
             publisher.send(message_topic, zmq::send_flags::sndmore);
             zmq::message_t message_body(buffer.data(), buffer.size());
@@ -289,7 +290,7 @@ int main(int argc, char *argv[])
 	g_config.DisplayConfiguration();
 
 	// Configure the capture callback
-	delegate = new DeckLinkCaptureDelegate();
+	delegate = new DeckLinkCaptureDelegate(g_config.m_topic);
 	g_deckLinkInput->SetCallback(delegate);
 
 	// Block main thread until signal occurs

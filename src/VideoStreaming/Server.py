@@ -39,7 +39,8 @@ class Server:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--port')
+    parser.add_argument('-p', '--port', help='ZMQ port', type=int)
+
     args = parser.parse_args()
 
     srv = Server(args.port)
