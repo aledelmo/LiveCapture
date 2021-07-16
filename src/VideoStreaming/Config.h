@@ -12,13 +12,12 @@ public:
 	bool ParseArguments(int argc,  char** argv);
 	void DisplayUsage(int status) const;
 	void DisplayConfiguration();
-	std::string SetAddressZMQ() const ;
-	std::string SetTopicPublisher() const ;
+	char* GetFullAddress() const ;
 
 	int						m_deckLinkIndex;
 	int						m_displayModeIndex;
 	int                     m_port;
-	int                     m_side;
+	char*                   m_topic;
 
 	BMDVideoInputFlags		m_inputFlags;
 	BMDPixelFormat			m_pixelFormat;

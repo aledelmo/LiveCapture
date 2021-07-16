@@ -31,7 +31,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	int		ch;
     char    *arg;
 
-	while ((ch = getopt(argc, argv, "d:m:3:h:s:p")) != -1)
+	while ((ch = getopt(argc, argv, "d:m:3:h:t:p")) != -1)
 	{
 		switch (ch)
 		{
@@ -49,14 +49,11 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 
 		    case 'h':
                 m_port = int(strtol(optarg, &arg, 0));
-                std::cout<<"port : "<<m_port<<std::endl;
                 break;
 
-		    case 's':
-		        m_side = int(strtol(optarg, &arg, 0));
-                std::cout<<"side : "<<m_side<<std::endl;
+		    case 't':
+		        m_topic = optarg;
                 break;
-
 
 			case 'p':
 				switch(int(strtol(optarg, &arg, 0)))
@@ -85,10 +82,6 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
         fprintf(stderr, "Wrong port : please use a port with 4 digits\n");
         DisplayUsage(1);
 	}
-
-//	if (m_side < 0 or m_side > 1)
-//        fprintf(stderr, "side : 0 for left and 1 for right");
-//        DisplayUsage(1);
 
 	if (m_displayModeIndex < -1)
 	{
@@ -396,31 +389,21 @@ void BMDConfig::DisplayConfiguration()
 		" - Video mode: %s %s\n"
 		" - Pixel format: %s\n"
 		" - Publishing bind to port: %i\n"
-		" - Publishing topic : %s\n",
-
+		" - Publishing on topic : %s\n",
 		m_deckLinkName,
 		m_displayModeName,
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
 		GetPixelFormatName(m_pixelFormat),
 		m_port,
-		(m_side == 0) ? "left" : "right"
+		m_topic
 	);
 }
 
 
-std::string BMDConfig::SetAddressZMQ() const {
-    std::string address = "tcp://127.0.0.1:"+ std::to_string(m_port);
-
-    return address;
+char* BMDConfig::GetFullAddress() const {
+    char addr[] = "tcp://127.0.0.1:";
+    return strcat(addr, reinterpret_cast<const char *>(m_port));
 }
-
-
-std::string BMDConfig::SetTopicPublisher() const {
-    std::string topic;
-    topic = (m_side == 0) ? "left" : "right";
-    return topic;
-}
-
 
 
 const char* BMDConfig::GetPixelFormatName(BMDPixelFormat pixelFormat)

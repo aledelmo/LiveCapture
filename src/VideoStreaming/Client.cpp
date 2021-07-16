@@ -23,7 +23,6 @@ static unsigned long	g_frameCount = 0;
 
 zmq::context_t context(1);
 zmq::socket_t publisher(context, ZMQ_XPUB);
-std::string              topic;
 
 
 DeckLinkCaptureDelegate::DeckLinkCaptureDelegate() : 
@@ -100,7 +99,7 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             std::vector <uchar> buffer;
             cv::imencode(".jpg", image, buffer);
 
-            publisher.send(topic.data(), topic.size(), ZMQ_SNDMORE);
+            publisher.send(g_config.m_topic, ZMQ_SNDMORE);
             publisher.send(buffer.data(), buffer.size());
 		}
 		g_frameCount++;
@@ -198,10 +197,7 @@ int main(int argc, char *argv[])
 	}
 
 	// get topic information and bind to specified port
-	topic= g_config.SetTopicPublisher();
-    publisher.connect(g_config.SetAddressZMQ().c_str());
-
-
+    publisher.connect(g_config.GetFullAddress());
 
     // Get the DeckLink device
 	deckLink = g_config.GetSelectedDeckLink();
@@ -292,10 +288,6 @@ int main(int argc, char *argv[])
 	// Configure the capture callback
 	delegate = new DeckLinkCaptureDelegate();
 	g_deckLinkInput->SetCallback(delegate);
-
-
-
-
 
 	// Block main thread until signal occurs
 	while (!g_do_exit)
