@@ -360,9 +360,9 @@ bail:
 		"         2:  10 bit RGB (4:4:4)\n"
 		"    -3   Stereoscopic 3D (Requires 3D Hardware support)\n"
         "    -h   ZMQ publishing port\n"
-        "    -s   ZMQ publishing topic\n"
+        "    -t   ZMQ publishing topic\n"
 		"\n"
-		"    Client -d 0 -m 2 -h 5005 -s 0\n"
+        "    Client -d 0 -m 2 -h 5005 -t \"left\"\n"
 	);
 
     deckLinkIterator->Release();
@@ -395,14 +395,13 @@ void BMDConfig::DisplayConfiguration()
 		(m_inputFlags & bmdVideoInputDualStream3D) ? "3D" : "",
 		GetPixelFormatName(m_pixelFormat),
 		m_port,
-		m_topic
+		m_topic.c_str()
 	);
 }
 
 
-char* BMDConfig::GetFullAddress() const {
-    char addr[] = "tcp://127.0.0.1:";
-    return strcat(addr, reinterpret_cast<const char *>(m_port));
+std::string BMDConfig::GetFullAddress() const {
+    return "tcp://127.0.0.1:" + std::to_string(m_port);
 }
 
 

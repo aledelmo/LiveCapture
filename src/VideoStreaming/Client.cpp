@@ -99,8 +99,11 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             std::vector <uchar> buffer;
             cv::imencode(".jpg", image, buffer);
 
-            publisher.send(g_config.m_topic, ZMQ_SNDMORE);
-            publisher.send(buffer.data(), buffer.size());
+            zmq::message_t message_topic(g_config.m_topic.data(), g_config.m_topic.size());
+
+            publisher.send(message_topic, zmq::send_flags::sndmore);
+            zmq::message_t message_body(buffer.data(), buffer.size());
+            publisher.send(message_body, zmq::send_flags::none);
 		}
 		g_frameCount++;
 	}
