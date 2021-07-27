@@ -38,6 +38,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <iostream>
+#include <algorithm>
+#include <random>
 
 #include "TestPattern.h"
 #include "VideoFrame3D.h"
@@ -47,6 +50,14 @@ pthread_cond_t			sleepCond;
 bool					do_exit = false;
 
 const unsigned long		kAudioWaterlevel = 48000;
+int rot = 0;
+
+auto print = [](auto const& remark, auto const& v) {
+    std::cout << remark;
+    for (int n: v)
+        std::cout << n << ' ';
+    std::cout << '\n';
+};
 
 void sigfunc(int signum)
 {
@@ -394,6 +405,9 @@ void TestPattern::ScheduleNextFrame(bool prerolling)
 	{
 		if ((m_totalFramesScheduled % m_framesPerSecond) == 0)
 		{
+            if (CreateFrame(&m_videoFrameBars, FillForwardColourBars) != S_OK)
+                exit(1);
+
 			// On each second, schedule a frame of bars
 			if (m_deckLinkOutput->ScheduleVideoFrame(m_videoFrameBars, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
 				return;
@@ -415,6 +429,9 @@ void TestPattern::ScheduleNextFrame(bool prerolling)
 		}
 		else
 		{
+            m_videoFrameBars->Release();
+            if (CreateFrame(&m_videoFrameBars, FillForwardColourBars) != S_OK)
+                exit(1);
 			// Schedue frames of color bars
 			if (m_deckLinkOutput->ScheduleVideoFrame(m_videoFrameBars, (m_totalFramesScheduled * m_frameDuration), m_frameDuration, m_frameTimescale) != S_OK)
 				return;
@@ -609,11 +626,18 @@ void FillColourBars(IDeckLinkVideoFrame* theFrame, bool reverse)
 	unsigned int*	nextWord;
 	unsigned long	width;
 	unsigned long	height;
-	unsigned int	bars[8] = {0xEA80EA80, 0xD292D210, 0xA910A9A5, 0x90229035, 0x6ADD6ACA, 0x51EF515A, 0x286D28EF, 0x10801080};
+    std::vector<unsigned int> bars{0xEA80EA80, 0xD292D210, 0xA910A9A5, 0x90229035, 0x6ADD6ACA, 0x51EF515A, 0x286D28EF, 0x10801080};
 
 	theFrame->GetBytes((void**)&nextWord);
 	width = theFrame->GetWidth();
 	height = theFrame->GetHeight();
+
+    usleep(100000);
+    std::rotate(bars.begin(), bars.begin() + rot, bars.end());
+    if (rot >= bars.size())
+        rot = 0;
+    else
+        rot++;
 
 	if (reverse)
 	{

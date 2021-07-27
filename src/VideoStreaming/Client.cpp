@@ -20,8 +20,11 @@ static BMDConfig		g_config;
 static IDeckLinkInput*	g_deckLinkInput = nullptr;
 static IDeckLinkInput*	g_deckLinkInputLeft = nullptr;
 
+static IDeckLinkMutableVideoFrame* g_videoFrame8BitYUV = nullptr;
+static IDeckLinkVideoConversion* g_frameConverter = nullptr;
+
 zmq::context_t context(1);
-zmq::socket_t publisher(context, ZMQ_XPUB);
+zmq::socket_t publisher(context, ZMQ_PUB);
 
 
 DeckLinkCaptureDelegate::DeckLinkCaptureDelegate(int d, const std::string& t) :
@@ -73,21 +76,17 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
 		}
 		else
 		{
-			printf("Frame received on device (#%i) - %s - Size: %li bytes - Forwarding to %s\n",
-                   device,
-                   rightEyeFrame != nullptr ? "Valid Frame (3D left/right)" : "Valid Frame",
-                   videoFrame->GetRowBytes() * videoFrame->GetHeight(),
-                   topic.c_str());
-
             const auto width = int(videoFrame->GetWidth());
             const auto height = int(videoFrame->GetHeight());
 
-            if (m_pixelFormat != bmdFormat8BitYUV)
-            {
-                IDeckLinkMutableVideoFrame* m_videoFrame8BitYUV;
-                IDeckLinkVideoConversion* frameConverter = CreateVideoConversionInstance();
-                frameConverter->ConvertFrame(videoFrame, m_videoFrame8BitYUV);
-                m_videoFrame8BitYUV->GetBytes(&data);
+            if (m_pixelFormat != bmdFormat8BitYUV) {
+                if (g_frameConverter->ConvertFrame(videoFrame, g_videoFrame8BitYUV) != S_OK)
+                {
+                    fprintf(stderr, "Pixel format conversion from %ui to %ui failed\n",
+                            m_pixelFormat, bmdFormat8BitYUV);
+                    goto bail;
+                }
+                g_videoFrame8BitYUV->GetBytes(&data);
             }
             else
             {
@@ -106,7 +105,8 @@ HRESULT DeckLinkCaptureDelegate::VideoInputFrameArrived(IDeckLinkVideoInputFrame
             publisher.send(message_body, zmq::send_flags::none);
 		}
 	}
-
+	
+bail:
 	return S_OK;
 }
 
@@ -189,6 +189,9 @@ int main(int argc, char *argv[])
 	DeckLinkCaptureDelegate*		delegate = nullptr;
 	DeckLinkCaptureDelegate*		delegateLeft = nullptr;
 
+    IDeckLinkDisplayMode* displaymode = nullptr;
+    IDeckLinkOutput* deckLinkOutput = nullptr;
+
 	pthread_mutex_init(&g_sleepMutex, nullptr);
 	pthread_cond_init(&g_sleepCond, nullptr);
 
@@ -213,6 +216,14 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unable to get DeckLink device %u\n", g_config.m_deckLinkIndex);
 		goto bail;
 	}
+
+    result = deckLink->QueryInterface(IID_IDeckLinkOutput, (void**)&deckLinkOutput);
+    if (result != S_OK)
+    {
+        fprintf(stderr, "Unable to get DeckLink Output\n");
+        goto bail;
+    }
+
     deckLinkLeft = BMDConfig::GetSelectedDeckLink(g_config.m_deckLinkIndexLeft);
     if (deckLinkLeft == nullptr)
     {
@@ -315,6 +326,16 @@ int main(int argc, char *argv[])
 
 	// Print the selected configuration
 	g_config.DisplayConfiguration();
+
+	// create the video frame converter
+    g_frameConverter = CreateVideoConversionInstance();
+    if (deckLinkOutput->CreateVideoFrame(int(displayMode->GetWidth()), int(displayMode->GetHeight()),
+                                         int(displayMode->GetWidth()) * 2, bmdFormat8BitYUV,
+                                         bmdFrameFlagDefault, &g_videoFrame8BitYUV) != S_OK)
+    {
+        fprintf(stderr, "Cannot create video frame\n");
+        goto bail;
+    }
 
 	// Configure the capture callback
 	delegate = new DeckLinkCaptureDelegate(g_config.m_deckLinkIndex, "right");

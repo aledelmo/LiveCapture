@@ -36,7 +36,7 @@ bool BMDConfig::ParseArguments(int argc,  char** argv)
 	int		ch;
     char    *arg;
 
-	while ((ch = getopt(argc, argv, "r:l:m:3:p:f")) != -1)
+	while ((ch = getopt(argc, argv, "r:l:m:3:p:f:")) != -1)
 	{
 		switch (ch)
 		{
