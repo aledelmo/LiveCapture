@@ -2,6 +2,8 @@
 Live video capture using [Decklink](https://www.blackmagicdesign.com/products/decklink/) devices.
 Video frames are processed with [OpenCV](https://opencv.org/) and the stream is then forwarded to localhost using [ZeroMQ](https://zeromq.org/).
 
+![robot](https://i.imgur.com/EI83S23.png)
+
 Project used for the live augmented reality of surgical procedures using the
 [DaVinci](https://www.intuitive.com/) surgical system endoscope as video source.
 
